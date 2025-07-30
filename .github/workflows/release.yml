@@ -1,0 +1,37 @@
+name: Build and Release Extension
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: Install web-ext
+        run: npm install --global web-ext
+      - name: Build extension
+        run: web-ext build
+      - name: Rename artifact
+        run: |
+          FILE=$(ls web-ext-artifacts/*.zip | head -n 1)
+          mv "$FILE" "${FILE%.zip}.xpi"
+          echo "ARTIFACT=${FILE%.zip}.xpi" >> "$GITHUB_ENV"
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: extension
+          path: ${{ env.ARTIFACT }}
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ${{ env.ARTIFACT }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
