@@ -1,0 +1,12 @@
+name: PR Checks
+
+on:
+  pull_request:
+
+jobs:
+  build:
+    if: github.actor == 'QQRM'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "Running CI for trusted user"
