@@ -38,5 +38,5 @@ A GitHub Actions workflow builds the extension whenever a tag starting with `v` 
 
 ## Pull Request Checks
 
-Only pull requests opened by the `QQRM` account run CI jobs. The check is defined in `.github/workflows/pr.yml`. Pull requests from other users skip all pipelines, leaving merging to be controlled by repository protections.
+All pull requests automatically build the extension using GitHub Actions. The workflow defined in `.github/workflows/pr.yml` installs the required tooling, packages the extension with `web-ext`, and uploads the resulting `.xpi` file as an artifact. Visit the checks section of a pull request to download the packaged build from the corresponding workflow run.
 
