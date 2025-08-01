@@ -5,8 +5,24 @@ on:
 
 jobs:
   build:
-    if: github.actor == 'QQRM'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: echo "Running CI for trusted user"
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: Install web-ext
+        run: npm install --global web-ext
+      - name: Build extension
+        run: web-ext build
+      - name: Rename artifact
+        run: |
+          FILE=$(ls web-ext-artifacts/*.zip | head -n 1)
+          mv "$FILE" "${FILE%.zip}.xpi"
+          echo "ARTIFACT=${FILE%.zip}.xpi" >> "$GITHUB_ENV"
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: extension
+          path: ${{ env.ARTIFACT }}
