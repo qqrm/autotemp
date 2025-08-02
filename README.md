@@ -34,7 +34,7 @@ The command creates a `.zip` archive inside a `web-ext-artifacts` folder. To dis
 
 ## Automated Build and Release
 
-A GitHub Actions workflow builds the extension whenever a tag starting with `v` is pushed. The pipeline uses `web-ext` to package the code and publishes the resulting `.xpi` file as an artifact of the corresponding GitHub Release. You can also trigger the workflow manually via the **Run workflow** button in the Actions tab.
+A GitHub Actions workflow builds the extension whenever a tag is pushed, a release is published, or the workflow is triggered manually. The pipeline uses `web-ext` to package the code and publishes the resulting `.xpi` file as an artifact of the corresponding GitHub Release. You can also start the workflow manually from the **Actions** tab.
 
 ## Pull Request Checks
 

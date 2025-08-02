@@ -3,7 +3,10 @@ name: Build and Release Extension
 on:
   push:
     tags:
-      - 'v*'
+      - '*'
+  pull_request:
+  release:
+    types: [published]
   workflow_dispatch:
     inputs:
       tag:
@@ -29,6 +32,7 @@ jobs:
           mv "$FILE" "${FILE%.zip}.xpi"
           echo "ARTIFACT=${FILE%.zip}.xpi" >> "$GITHUB_ENV"
       - name: Set tag name
+        if: github.event_name != 'pull_request'
         run: |
           if [ -n "${{ github.event.inputs.tag }}" ]; then
             echo "TAG_NAME=${{ github.event.inputs.tag }}" >> "$GITHUB_ENV"
@@ -43,6 +47,7 @@ jobs:
           name: extension
           path: ${{ env.ARTIFACT }}
       - name: Create GitHub release
+        if: github.event_name != 'pull_request'
         uses: softprops/action-gh-release@v1
         with:
           files: ${{ env.ARTIFACT }}
