@@ -53,7 +53,21 @@ log('контент-скрипт загружен');
 
   function storeState(on) {
     log('сохраняем состояние', on);
-    storage.local.set({ [KEY]: on });
+    if (browserStorage) {
+      browserStorage.local.set({ [KEY]: on }).then(
+        () => log('состояние успешно сохранено'),
+        err => log('не удалось сохранить состояние', err)
+      );
+    } else {
+      storage.local.set({ [KEY]: on }, () => {
+        const err = chrome.runtime.lastError;
+        if (err) {
+          log('не удалось сохранить состояние', err);
+        } else {
+          log('состояние успешно сохранено');
+        }
+      });
+    }
   }
 
   function emulateClick(el) {
