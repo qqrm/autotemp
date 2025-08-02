@@ -36,9 +36,12 @@
   }
 
   const observer = new MutationObserver(() => {
+    log('DOM changed');
     const toggle = findToggle();
     if (toggle) {
       initWithToggle(toggle);
+    } else {
+      log('toggle not found after DOM change');
     }
   });
   observer.observe(document.documentElement, { childList: true, subtree: true });
