@@ -3,7 +3,15 @@ log('content script loaded');
 
 (function() {
   const KEY = 'tempMode';
-  const storage = (typeof browser !== 'undefined' && browser.storage) ? browser.storage : chrome.storage;
+  const browserStorage = (typeof browser !== 'undefined' && browser.storage) ? browser.storage : null;
+  const storage = browserStorage || chrome.storage;
+
+  function getStoredState() {
+    if (browserStorage) {
+      return browserStorage.local.get(KEY);
+    }
+    return new Promise(resolve => storage.local.get(KEY, resolve));
+  }
 
   function findToggle() {
     log('searching toggle');
@@ -29,17 +37,16 @@ log('content script loaded');
     storage.local.set({ [KEY]: on });
   }
 
-  function applyState(el) {
-    storage.local.get(KEY).then(({ tempMode }) => {
-      const enabled = Boolean(tempMode);
-      log('retrieved state', enabled);
-      if (enabled && el && !isOn(el)) {
-        log('click toggle to enable');
-        el.click();
-      } else {
-        log('toggle already enabled');
-      }
-    });
+  async function applyState(el) {
+    const { tempMode } = await getStoredState();
+    const enabled = Boolean(tempMode);
+    log('retrieved state', enabled);
+    if (enabled && el && !isOn(el)) {
+      log('click toggle to enable');
+      el.click();
+    } else {
+      log('toggle already enabled');
+    }
   }
 
   function initWithToggle(el) {
