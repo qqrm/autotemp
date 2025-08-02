@@ -1,5 +1,5 @@
 {
-  "manifest_version": 3,
+  "manifest_version": 2,
   "name": "ChatGPT Temporary State",
   "version": "1.0",
   "description": "Persist and apply temporary chat mode for ChatGPT.",
