@@ -3,8 +3,11 @@
   const storage = (typeof browser !== 'undefined' && browser.storage) ? browser.storage : chrome.storage;
 
   function findToggle() {
+    log('searching toggle');
     const candidates = Array.from(document.querySelectorAll('button, input'));
-    return candidates.find(el => /temporary/i.test(el.textContent || '') || /temporary/i.test(el.getAttribute('aria-label') || ''));
+    const el = candidates.find(el => /temporary/i.test(el.textContent || '') || /temporary/i.test(el.getAttribute('aria-label') || ''));
+    if (el) log('toggle found', el);
+    return el;
   }
 
   function isOn(el) {
@@ -28,8 +31,10 @@
   }
 
   function initWithToggle(el) {
+    log('applyState');
     applyState(el);
     if (!el._autotemp_bound) {
+      log('bind click');
       el._autotemp_bound = true;
       el.addEventListener('click', () => setTimeout(() => storeState(isOn(el)), 50));
     }
