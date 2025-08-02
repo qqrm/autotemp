@@ -56,13 +56,19 @@ log('content script loaded');
     storage.local.set({ [KEY]: on });
   }
 
+  function emulateClick(el) {
+    ['mousedown', 'mouseup', 'click'].forEach(type =>
+      el.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true, view: window }))
+    );
+  }
+
   async function applyState(el) {
     const { tempMode } = await getStoredState();
     const enabled = Boolean(tempMode);
     log('retrieved state', enabled);
     if (enabled && el && !isOn(el)) {
       log('click toggle to enable');
-      el.click();
+      emulateClick(el);
     } else {
       log('toggle already enabled');
     }
