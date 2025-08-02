@@ -1,5 +1,5 @@
 function log(...args) { console.log('[autotemp]', ...args); }
-log('content script loaded');
+log('контент-скрипт загружен');
 
 (function() {
   const KEY = 'tempMode';
@@ -14,13 +14,13 @@ log('content script loaded');
   }
 
   function findToggle() {
-    log('searching toggle');
+    log('ищем переключатель временного чата');
     const el = document.querySelector('#conversation-header-actions button[aria-label*="temporary chat"]') ||
               Array.from(document.querySelectorAll('button, input')).find(el =>
                 /temporary/i.test(el.textContent || '') ||
                 /temporary/i.test(el.getAttribute('aria-label') || '')
               );
-    if (el) log('toggle found', el);
+    if (el) log('переключатель найден', el);
     return el;
   }
 
@@ -52,7 +52,7 @@ log('content script loaded');
   }
 
   function storeState(on) {
-    log('storeState', on);
+    log('сохраняем состояние', on);
     storage.local.set({ [KEY]: on });
   }
 
@@ -65,24 +65,25 @@ log('content script loaded');
   async function applyState(el) {
     const { tempMode } = await getStoredState();
     const enabled = Boolean(tempMode);
-    log('retrieved state', enabled);
+    log('получено сохранённое состояние', enabled);
     if (enabled && el && !isOn(el)) {
-      log('click toggle to enable');
+      log('включаем временный чат');
       emulateClick(el);
     } else {
-      log('toggle already enabled');
+      log('переключатель уже в нужном состоянии');
     }
   }
 
   function initWithToggle(el) {
-    log('applyState');
+    log('применяем сохранённое состояние');
     applyState(el);
     if (!el._autotemp_bound) {
-      log('bind click');
+      log('подписываемся на нажатие переключателя');
       el._autotemp_bound = true;
       el.addEventListener(
         'click',
         () => {
+          log('пользователь нажал переключатель временного чата');
           const observer = new MutationObserver(() => {
             storeState(isOn(el));
             observer.disconnect();
@@ -98,12 +99,12 @@ log('content script loaded');
   }
 
   const observer = new MutationObserver(() => {
-    log('DOM changed');
+    log('DOM изменился');
     const toggle = findToggle();
     if (toggle) {
       initWithToggle(toggle);
     } else {
-      log('toggle not found after DOM change');
+      log('после изменения DOM переключатель не найден');
     }
   });
   observer.observe(document.documentElement, { childList: true, subtree: true });
@@ -113,4 +114,25 @@ log('content script loaded');
   if (initialToggle) {
     initWithToggle(initialToggle);
   }
+
+  // Track clicks on "New chat" to reapply state
+  document.addEventListener(
+    'click',
+    event => {
+      const newChat = event.target.closest('a[aria-label="New chat"], button[aria-label="New chat"]');
+      if (newChat) {
+        log('пользователь нажал «Новый чат»');
+        setTimeout(() => {
+          const toggle = findToggle();
+          if (toggle) {
+            log('применяем состояние к новому чату');
+            initWithToggle(toggle);
+          } else {
+            log('не удалось найти переключатель после создания нового чата');
+          }
+        }, 0);
+      }
+    },
+    true
+  );
 })();
