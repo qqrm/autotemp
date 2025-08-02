@@ -16,7 +16,26 @@ log('content script loaded');
     return el;
   }
 
+  // ChatGPT surfaces a site-level temporary mode indicator via a cookie and
+  // mirrors the state in a `data-temporary-mode` attribute on `<body>`. This is
+  // more reliable than inspecting the toggle itself since the button's DOM can
+  // change across releases.  We check those indicators first and only fall back
+  // to the previous heuristics if they're absent.
+  function siteTempMode() {
+    const body = document.body;
+    if (body && body.dataset) {
+      const attr = body.dataset.temporaryMode;
+      if (attr === 'true' || attr === 'enabled') return true;
+      if (attr === 'false' || attr === 'disabled') return false;
+    }
+    const match = document.cookie.match(/(?:^|; )oai-temporary-mode=(true|false)/);
+    if (match) return match[1] === 'true';
+    return null; // unknown
+  }
+
   function isOn(el) {
+    const site = siteTempMode();
+    if (typeof site === 'boolean') return site;
     return el.getAttribute('aria-label') === 'Turn off temporary chat' ||
            el.getAttribute('aria-pressed') === 'true' ||
            el.getAttribute('aria-checked') === 'true' ||
