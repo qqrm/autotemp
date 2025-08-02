@@ -7,14 +7,18 @@ log('content script loaded');
 
   function findToggle() {
     log('searching toggle');
-    const candidates = Array.from(document.querySelectorAll('button, input'));
-    const el = candidates.find(el => /temporary/i.test(el.textContent || '') || /temporary/i.test(el.getAttribute('aria-label') || ''));
+    const el = document.querySelector('#conversation-header-actions button[aria-label*="temporary chat"]') ||
+              Array.from(document.querySelectorAll('button, input')).find(el =>
+                /temporary/i.test(el.textContent || '') ||
+                /temporary/i.test(el.getAttribute('aria-label') || '')
+              );
     if (el) log('toggle found', el);
     return el;
   }
 
   function isOn(el) {
-    return el.getAttribute('aria-pressed') === 'true' ||
+    return el.getAttribute('aria-label') === 'Turn off temporary chat' ||
+           el.getAttribute('aria-pressed') === 'true' ||
            el.getAttribute('aria-checked') === 'true' ||
            el.classList.contains('active') ||
            (el.checked === true);
