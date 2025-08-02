@@ -116,9 +116,13 @@ log('контент-скрипт загружен');
     }
   }
 
-  function initWithToggle(el) {
+  async function initWithToggle(el) {
     log('применяем сохранённое состояние');
-    applyState(el);
+    try {
+      await applyState(el);
+    } catch (error) {
+      log('ошибка при чтении сохранённого состояния', error);
+    }
     if (!el._autotemp_bound) {
       log('подписываемся на нажатие переключателя');
       el._autotemp_bound = true;
