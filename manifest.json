@@ -1,13 +1,23 @@
 {
-  "manifest_version": 2,
+  "manifest_version": 3,
   "name": "ChatGPT Temporary State",
   "version": "1.0",
   "description": "Persist and apply temporary chat mode for ChatGPT.",
-  "permissions": ["storage"],
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://chatgpt.com/*"
+  ],
   "content_scripts": [
     {
-      "matches": ["https://chat.openai.com/*"],
-      "js": ["contentScript.js"]
+      "matches": [
+        "https://chatgpt.com/*"
+      ],
+      "js": [
+        "contentScript.js"
+      ],
+      "run_at": "document_idle"
     }
   ]
 }
