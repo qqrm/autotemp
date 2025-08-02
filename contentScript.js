@@ -15,14 +15,19 @@
   }
 
   function storeState(on) {
+    log('storeState', on);
     storage.local.set({ [KEY]: on });
   }
 
   function applyState(el) {
     storage.local.get(KEY).then(({ tempMode }) => {
       const enabled = Boolean(tempMode);
+      log('retrieved state', enabled);
       if (enabled && el && !isOn(el)) {
+        log('click toggle to enable');
         el.click();
+      } else {
+        log('toggle already enabled');
       }
     });
   }
