@@ -67,7 +67,20 @@ log('content script loaded');
     if (!el._autotemp_bound) {
       log('bind click');
       el._autotemp_bound = true;
-      el.addEventListener('click', () => setTimeout(() => storeState(isOn(el)), 50));
+      el.addEventListener(
+        'click',
+        () => {
+          const observer = new MutationObserver(() => {
+            storeState(isOn(el));
+            observer.disconnect();
+          });
+          observer.observe(el, {
+            attributes: true,
+            attributeFilter: ['aria-pressed', 'aria-checked', 'class'],
+          });
+        },
+        { capture: true }
+      );
     }
   }
 
