@@ -84,14 +84,34 @@ log('контент-скрипт загружен');
         'click',
         () => {
           log('пользователь нажал переключатель временного чата');
-          const observer = new MutationObserver(() => {
-            storeState(isOn(el));
-            observer.disconnect();
-          });
-          observer.observe(el, {
-            attributes: true,
-            attributeFilter: ['aria-pressed', 'aria-checked', 'class'],
-          });
+
+          const prev = siteTempMode();
+
+          function cleanup() {
+            clearInterval(interval);
+            bodyObserver.disconnect();
+          }
+
+          function checkAndStore() {
+            const current = siteTempMode();
+            if (typeof current === 'boolean' && current !== prev) {
+              storeState(current);
+              cleanup();
+            }
+          }
+
+          const interval = setInterval(checkAndStore, 100);
+
+          const bodyObserver = new MutationObserver(checkAndStore);
+          if (document.body) {
+            bodyObserver.observe(document.body, {
+              attributes: true,
+              attributeFilter: ['data-temporary-mode'],
+            });
+          }
+
+          // Stop polling after a short grace period in case nothing changes
+          setTimeout(cleanup, 2000);
         },
         { capture: true }
       );
