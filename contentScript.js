@@ -1,5 +1,6 @@
 (function() {
   const KEY = 'tempMode';
+  const storage = (typeof browser !== 'undefined' && browser.storage) ? browser.storage : chrome.storage;
 
   function findToggle() {
     const candidates = Array.from(document.querySelectorAll('button, input'));
@@ -14,11 +15,11 @@
   }
 
   function storeState(on) {
-    browser.storage.local.set({ [KEY]: on });
+    storage.local.set({ [KEY]: on });
   }
 
   function applyState(el) {
-    browser.storage.local.get(KEY).then(({ tempMode }) => {
+    storage.local.get(KEY).then(({ tempMode }) => {
       const enabled = Boolean(tempMode);
       if (enabled && el && !isOn(el)) {
         el.click();
