@@ -6,6 +6,20 @@ log('контент-скрипт загружен');
   const browserStorage = (typeof browser !== 'undefined' && browser.storage) ? browser.storage : null;
   const storage = browserStorage || chrome.storage;
 
+  // Configuration for multilingual environments. Users can extend these
+  // patterns via `window.autotempConfig` before the script loads.
+  const DEFAULT_LABELS = {
+    tempToggle: [/temporary/i, /временн/i],
+    tempToggleOff: [/turn off temporary/i, /выключить временн/i],
+    newChat: [/new chat/i, /новый чат/i],
+  };
+  const USER_LABELS = (typeof window !== 'undefined' && window.autotempConfig) || {};
+  const LABELS = {
+    tempToggle: USER_LABELS.tempToggle || DEFAULT_LABELS.tempToggle,
+    tempToggleOff: USER_LABELS.tempToggleOff || DEFAULT_LABELS.tempToggleOff,
+    newChat: USER_LABELS.newChat || DEFAULT_LABELS.newChat,
+  };
+
   function getStoredState() {
     if (browserStorage) {
       return browserStorage.local.get(KEY);
@@ -15,12 +29,26 @@ log('контент-скрипт загружен');
 
   function findToggle() {
     log('ищем переключатель временного чата');
-    const el = document.querySelector('#conversation-header-actions button[aria-label*="temporary chat"]') ||
-              Array.from(document.querySelectorAll('button, input')).find(el =>
-                /temporary/i.test(el.textContent || '') ||
-                /temporary/i.test(el.getAttribute('aria-label') || '')
-              );
-    if (el) log('переключатель найден', el);
+    // Prefer stable attributes over localized text.
+    const stableSelectors = [
+      '#conversation-header-actions [data-testid="temporary-mode-toggle"]',
+      '#conversation-header-actions [data-testid="temp-mode-toggle"]',
+      '#conversation-header-actions button[role="switch"]',
+    ];
+    for (const selector of stableSelectors) {
+      const found = document.querySelector(selector);
+      if (found) {
+        log('переключатель найден по селектору', selector);
+        return found;
+      }
+    }
+    // Fallback to multilingual pattern matching.
+    const el = Array.from(document.querySelectorAll('button, input')).find(el =>
+      LABELS.tempToggle.some(rx =>
+        rx.test(el.textContent || '') || rx.test(el.getAttribute('aria-label') || '')
+      )
+    );
+    if (el) log('переключатель найден через текст', el);
     return el;
   }
 
@@ -44,7 +72,7 @@ log('контент-скрипт загружен');
   function isOn(el) {
     const site = siteTempMode();
     if (typeof site === 'boolean') return site;
-    return el.getAttribute('aria-label') === 'Turn off temporary chat' ||
+    return LABELS.tempToggleOff.some(rx => rx.test(el.getAttribute('aria-label') || '')) ||
            el.getAttribute('aria-pressed') === 'true' ||
            el.getAttribute('aria-checked') === 'true' ||
            el.classList.contains('active') ||
@@ -137,7 +165,17 @@ log('контент-скрипт загружен');
   document.addEventListener(
     'click',
     event => {
-      const newChat = event.target.closest('a[aria-label="New chat"], button[aria-label="New chat"]');
+      const selectors = ['a[data-testid="new-chat-button"]', 'button[data-testid="new-chat-button"]'];
+      let newChat = null;
+      for (const selector of selectors) {
+        newChat = event.target.closest(selector);
+        if (newChat) break;
+      }
+      if (!newChat) {
+        const el = event.target.closest('a, button');
+        const label = (el && (el.getAttribute('aria-label') || el.textContent)) || '';
+        if (LABELS.newChat.some(rx => rx.test(label))) newChat = el;
+      }
       if (newChat) {
         log('пользователь нажал «Новый чат»');
         setTimeout(() => {
