@@ -72,7 +72,8 @@ log('контент-скрипт загружен');
   function isOn(el) {
     const site = siteTempMode();
     if (typeof site === 'boolean') return site;
-    return LABELS.tempToggleOff.some(rx => rx.test(el.getAttribute('aria-label') || '')) ||
+    const label = el.getAttribute('aria-label') || el.textContent || '';
+    return LABELS.tempToggleOff.some(rx => rx.test(label)) ||
            el.getAttribute('aria-pressed') === 'true' ||
            el.getAttribute('aria-checked') === 'true' ||
            el.classList.contains('active') ||
@@ -130,7 +131,7 @@ log('контент-скрипт загружен');
         'click',
         () => {
           log('пользователь нажал переключатель временного чата');
-          setTimeout(() => storeState(siteTempMode()), 0);
+          setTimeout(() => storeState(siteTempMode() ?? isOn(el)), 0);
         },
         { capture: true }
       );
