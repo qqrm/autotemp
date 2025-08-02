@@ -1,3 +1,6 @@
+function log(...args) { console.log('[autotemp]', ...args); }
+log('content script loaded');
+
 (function() {
   const KEY = 'tempMode';
   const storage = (typeof browser !== 'undefined' && browser.storage) ? browser.storage : chrome.storage;
