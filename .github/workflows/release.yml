@@ -21,19 +21,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-      - name: Install web-ext
-        run: npm install --global web-ext
-      - name: Build extension
-        run: web-ext build
-      - name: Rename artifact
+      - name: Create zip archive
         run: |
-          FILE=$(ls web-ext-artifacts/*.zip | head -n 1)
-          mv "$FILE" "${FILE%.zip}.xpi"
-          echo "ARTIFACT=${FILE%.zip}.xpi" >> "$GITHUB_ENV"
+          zip -r extension.zip manifest.json contentScript.js icons
+          echo "ARTIFACT=extension.zip" >> "$GITHUB_ENV"
       - name: Set tag name
         if: github.event_name != 'pull_request'
         run: |
