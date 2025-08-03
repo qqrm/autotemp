@@ -27,5 +27,10 @@
     "48": "icons/48.png",
     "96": "icons/96.png",
     "128": "icons/128.png"
+  },
+  "applications": {
+    "gecko": {
+      "id": "autotemp@qqrm.lol"
+    }
   }
 }
