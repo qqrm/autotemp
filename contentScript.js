@@ -1,97 +1,103 @@
-(async () => {
+// ChatGPT Auto-Temp (desktop+mobile) v2.1 — WebExtension build
+(() => {
   'use strict';
 
-  /* ——————————— UI selectors ——————————— */
-  const NEW_CHAT_SELECTOR = 'a[href="/"], button[aria-label="New chat"]';
+  /* ——— Константы ——— */
   const ON_SELECTOR  = 'button[aria-label="Turn on temporary chat"]';
   const OFF_SELECTOR = 'button[aria-label="Turn off temporary chat"]';
+  const STORAGE_KEY  = 'tempChatEnabled';
+  const MAX_RETRIES  = 5;
+  const RETRY_MS     = 300;
 
-  /* ——————————— Storage helpers ——————————— */
-  const STORAGE_KEY = 'tempChatEnabled';
-  const storageAPI  = chrome?.storage?.local ?? (typeof browser !== 'undefined' ? browser.storage.local : null);
+  /* ——— Логирование ——— */
+  const DEBUG = false;
+  const log   = (...a) => DEBUG && console.log('[AutoTemp]', ...a);
 
-  const loadFlag = () =>
-    new Promise((resolve) => {
-      if (storageAPI) storageAPI.get([STORAGE_KEY], (res) => resolve(Boolean(res?.[STORAGE_KEY])));
-      else            resolve(Boolean(localStorage.getItem(STORAGE_KEY)));
-    });
+  /* ——— Хелперы хранилища ——— */
+  const store = (chrome?.storage ?? browser.storage).local;
 
-  const saveFlag = (val) => {
-    if (storageAPI) storageAPI.set({ [STORAGE_KEY]: val });
-    else            localStorage.setItem(STORAGE_KEY, val ? '1' : '');
+  const loadState = async () => {
+    const obj = await store.get(STORAGE_KEY);
+    return !!obj[STORAGE_KEY];
+  };
+  const saveState = (val) => {
+    store.set({ [STORAGE_KEY]: val });
     log('Saved state:', val);
   };
 
-  /* ——————————— Logging ——————————— */
-  const DEBUG = false;                  // flip to false to silence console
-  const log   = (...a) => DEBUG && console.log('[AutoTemp]', ...a);
-
-  /* ——————————— DOM helpers ——————————— */
+  /* ——— DOM-утилиты ——— */
   const isTempActive = () => !!document.querySelector(OFF_SELECTOR);
   const findVisible  = (sel) =>
-    [...document.querySelectorAll(sel)].find((el) => el.offsetParent !== null && !el.disabled);
+    [...document.querySelectorAll(sel)].find((el) => el.offsetParent && !el.disabled);
 
-  /* ——————————— Main auto-enable routine ——————————— */
-  const MAX_TRIES   = 30;
-  const RETRY_DELAY = 400; // ms
-
-  let tempChatEnabled = await loadFlag();
-  log('🟢 AutoTemp loaded. tempChatEnabled =', tempChatEnabled);
-
-  const enableTempChat = () => {
-    if (!tempChatEnabled || isTempActive()) return; // ничего делать не надо
-
-    let tries = 0;
-    const attempt = () => {
-      const btn = findVisible(ON_SELECTOR);
-      if (btn) {
-        btn.click();
-        setTimeout(() => {
-          if (isTempActive()) {
-            saveFlag(true);
-            log('✅ Turned ON temporary chat (confirmed)');
-          } else if (++tries < MAX_TRIES) {
-            log('🔄 Clicked but not active, retry', tries);
-            attempt();
-          } else {
-            log('❌ Gave up after', MAX_TRIES, 'tries');
-          }
-        }, 250);
-      } else if (++tries < MAX_TRIES) {
-        setTimeout(attempt, RETRY_DELAY);
-      } else {
-        log('❌ Button not found after', MAX_TRIES, 'tries');
-      }
+  /* ——— Лог кликов для отладки ——— */
+  if (DEBUG) {
+    const cssPath = (el) => {
+      if (!el) return '';
+      if (el.dataset?.testid)          return `${el.tagName.toLowerCase()}[data-testid="${el.dataset.testid}"]`;
+      if (el.getAttribute('aria-label')) return `${el.tagName.toLowerCase()}[aria-label="${el.getAttribute('aria-label')}"]`;
+      const cls = [...el.classList].slice(0, 3).join('.');
+      return cls ? `${el.tagName.toLowerCase()}.${cls}` : el.tagName.toLowerCase();
     };
-    attempt();
+    document.addEventListener(
+      'click',
+      (e) => e.isTrusted && console.log('[CLICK]', cssPath(e.target.closest('*'))),
+      true
+    );
+  }
+
+  /* ——— Основная логика ——— */
+  let retries = 0;
+  let tempChatEnabled = false;
+
+  const enableTemp = () => {
+    if (!tempChatEnabled || isTempActive()) { retries = 0; return; }
+
+    const btn = findVisible(ON_SELECTOR);
+    if (!btn) return;            // кнопка ещё не появилась
+
+    btn.click();
+    log('⚡️ Auto-clicked ON');
+
+    setTimeout(() => {
+      if (isTempActive()) {
+        log('✅ Temporary Chat включён');
+        retries = 0;
+      } else if (++retries <= MAX_RETRIES) {
+        log(`🔄 Повтор ${retries}`);
+        enableTemp();
+      } else {
+        log('❌ Не удалось включить после 5 попыток');
+        retries = 0;
+      }
+    }, RETRY_MS);
   };
 
-  /* ——————————— Persist user toggles ——————————— */
+  /* ——— Реагируем на ручное on/off ——— */
   document.addEventListener(
     'click',
     (e) => {
-      if (!e.isTrusted) return; // игнорируем синтетику
-      if (e.target.closest(ON_SELECTOR))  return saveFlag(true);
-      if (e.target.closest(OFF_SELECTOR)) return saveFlag(false);
+      if (!e.isTrusted) return;
+      if (e.target.closest(ON_SELECTOR))  { saveState(true);  tempChatEnabled = true;  }
+      if (e.target.closest(OFF_SELECTOR)) { saveState(false); tempChatEnabled = false; }
     },
     true
   );
 
-  /* ——————————— Hook “new chat” events ——————————— */
-  const onNewChat = () => enableTempChat();
+  /* ——— Наблюдаем DOM + смены URL ——— */
+  const mo = new MutationObserver(enableTemp);
+  mo.observe(document.body, { childList: true, subtree: true });
 
-  document.addEventListener(
-    'click',
-    (e) => {
-      if (e.target.closest(NEW_CHAT_SELECTOR)) onNewChat();
-    },
-    true
-  );
-  window.addEventListener('popstate', onNewChat); // SPA-переходы
-  window.addEventListener('keydown', (e) => {
-    if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'n') onNewChat();
+  let lastURL = location.pathname + location.search;
+  setInterval(() => {
+    const cur = location.pathname + location.search;
+    if (cur !== lastURL) { lastURL = cur; retries = 0; enableTemp(); }
+  }, 100);
+
+  /* ——— Старт ——— */
+  loadState().then((flag) => {
+    tempChatEnabled = flag;
+    enableTemp();
+    log('🟢 AutoTemp loaded. tempChatEnabled =', tempChatEnabled);
   });
-
-  /* ——————————— First-load sync ——————————— */
-  if (tempChatEnabled && !isTempActive()) enableTempChat();
 })();
